@@ -1,10 +1,12 @@
+import logging
+
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 from app.services.nlp_services import generate_response_SLI
 from pydantic import BaseModel
 
 router = APIRouter()
-
+logging.basicConfig(level=logging.INFO)
 class ChatRequest(BaseModel):
     prompt: str
 

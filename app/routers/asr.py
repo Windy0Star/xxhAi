@@ -1,3 +1,4 @@
+import logging
 from fastapi import APIRouter, UploadFile, File, HTTPException
 from fastapi.responses import StreamingResponse
 from pydub import AudioSegment
@@ -7,7 +8,7 @@ import requests
 import asyncio
 
 router = APIRouter()
-
+logging.basicConfig(level=logging.INFO)
 API_URL = "https://api.siliconflow.cn/v1/audio/transcriptions"
 API_TOKEN = "sk-dgrfsbapqcozsqzjqsyhyvdddwbhvihsximwvmhjiaftwnzq"
 
@@ -52,11 +53,13 @@ async def send_to_siliconflow_api(wav_path: str):
                 "file": (wav_path, audio_file, "audio/wav")
             }
             data = {"model": "FunAudioLLM/SenseVoiceSmall"}
-
+            logging.info("请求组装完成，向api接口发送Wav格式语音内容")
             response = requests.post(API_URL, headers=headers, files=files, data=data)
 
             if response.status_code == 200:
                 result = response.json()
+                logging.info(f"语音识别成功，内容为:{result}")
+
                 yield result.get("text", "语音识别成功，但未返回文本")
             else:
                 yield f"语音识别失败: {response.text}"
@@ -73,6 +76,8 @@ async def recognize_speech(file: UploadFile = File(...)):
     - **file**: 语音文件 (MP3、WAV)
     """
     try:
+        logging.info(f"📥 接收到语音文件: {file.filename}")
+
         # 读取音频数据
         audio_data = await file.read()
 
@@ -90,7 +95,7 @@ async def recognize_speech(file: UploadFile = File(...)):
             with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as temp_wav:
                 temp_wav.write(audio_data)
                 wav_path = temp_wav.name
-
+        logging.info("格式校验及转换完成")
         # 以流式方式返回 ASR 识别内容
         async def streaming_response():
             try:
